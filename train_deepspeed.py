@@ -146,14 +146,14 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         optimizer = Adam(g0, lr=hyp['lr0'], betas=(hyp['momentum'], 0.999))  # adjust beta1 to momentum
     else:
         optimizer = SGD(g0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
-
-    model, optimizer, _, _ = deepspeed.initialize(args=g0, model=model , model_parameters=model.parameters(), optimizer=optimizer)
+    
+    model, optimizer, _, _ = deepspeed.initialize(args=opt, model=model , model_parameters=model.parameters(), optimizer=optimizer)
 
     optimizer.add_param_group({'params': g1, 'weight_decay': hyp['weight_decay']})  # add g1 with weight_decay
     optimizer.add_param_group({'params': g2})  # add g2 (biases)
     LOGGER.info(f"{colorstr('optimizer:')} {type(optimizer).__name__} with parameter groups "
                 f"{len(g0)} weight, {len(g1)} weight (no decay), {len(g2)} bias")
-    del g0, g1, g2
+    #del g0, g1, g2
 
     # Scheduler
     if opt.linear_lr:
