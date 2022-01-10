@@ -332,14 +332,12 @@ class C3_4(nn.Module):
         self.cv3 = Conv_001(2 * c_, c2, 1)  # act=FReLU(c2)
         self.m = nn.Sequential(
             *(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(4)),
-            Bottleneck_000100(c_, c_, shortcut, g, e=1.0),
-            Bottleneck_001111(c_, c_, shortcut, g, e=1.0),
+            *Bottleneck_000100(c_, c_, shortcut, g, e=1.0),
+            *Bottleneck_001111(c_, c_, shortcut, g, e=1.0),
             *(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(3))
             )
                 
-        # self.m = nn.Sequential(
-        # *(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n))
-        # )
+        self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
 
         # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
 
