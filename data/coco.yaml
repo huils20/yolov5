@@ -38,7 +38,7 @@ download: |
   download(urls, dir=dir.parent)
 
   # Download data
-  #urls = 'http://images.cocodataset.org/zips/train2017.zip' # 19G, 118k images
+  urls = 'http://images.cocodataset.org/zips/train2017.zip' # 19G, 118k images
   download(urls, dir=dir / 'images')
 
 #urls = ['http://images.cocodataset.org/zips/train2017.zip',  # 19G, 118k images
