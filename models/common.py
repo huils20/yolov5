@@ -35,7 +35,7 @@ def autopad(k, p=None):  # kernel, padding
     return p
 
 
-class Conv_origin(nn.Module):
+class Conv(nn.Module):
     # Standard convolution
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
@@ -50,7 +50,7 @@ class Conv_origin(nn.Module):
         return self.act(self.conv(x))
 
 
-class Conv(nn.Module):
+class Conv_1(nn.Module):
     # offload all 3 tensors!!!注意名字
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
@@ -260,6 +260,18 @@ class Bottleneck_1(nn.Module):
     def forward(self, x):
         return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
 
+class Bottleneck_01(nn.Module):
+    # offload the  tensor of cv2/cv2
+    def __init__(self, c1, c2, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv_1(c_, c2, 3, 1, g=g)
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+
 
 class BottleneckCSP(nn.Module):
     # CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks
@@ -338,6 +350,28 @@ class C3_4(nn.Module):
 
     def forward(self, x):
         return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+
+class C3_4part(nn.Module):
+    # Module[4] complex
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv(c1, c_, 1, 1)
+        self.cv3 = Conv_001(2 * c_, c2, 1)  # act=FReLU(c2)
+        self.m = nn.Sequential(
+            *(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(5)),
+            Bottleneck_01(c_, c_, shortcut, g, e=1.0),
+            *(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(3))
+            )
+                
+        # self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
+
+        # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
+
+    def forward(self, x):
+        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+
 
 class C3_6(nn.Module):
     # Module[6] offload all tensor besides the first of cv1
