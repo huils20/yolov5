@@ -30,7 +30,7 @@ except ImportError:
     thop = None
 
 
-class Detect_0(nn.Module):
+class Detect(nn.Module):
     stride = None  # strides computed during build
     onnx_dynamic = False  # ONNX export parameter
 
@@ -80,7 +80,7 @@ class Detect_0(nn.Module):
             .view((1, self.na, 1, 1, 2)).expand((1, self.na, ny, nx, 2)).float()
         return grid, anchor_grid
 
-class Detect(nn.Module):
+class Detect_offload(nn.Module):
     stride = None  # strides computed during build
     onnx_dynamic = False  # ONNX export parameter
 
