@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 # ROOT = ROOT.relative_to(Path.cwd())  # relative
 
 from models.common import *
+from models.mycommon import *
 from models.experimental import *
 from utils.autoanchor import check_anchor_order
 from utils.general import LOGGER, check_version, check_yaml, make_divisible, print_args
@@ -317,7 +318,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C3, C3_1, C3_2, C3_4, C3_4part, C3_6, C3_17, C3TR, C3Ghost]:
+            if m in [BottleneckCSP, C3, C3_1, C3_2, C3_4, C3_4part, C3_6, C3_17, C3TR, C3Ghost]:    # C3_4part不加进去有影响？？
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
