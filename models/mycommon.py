@@ -156,7 +156,7 @@ class Conv_010(nn.Module):
         return self.act(self.conv(x))
 
 
-class Conv_011(nn.Module):
+class Conv_110(nn.Module):
     # offload conv,bn
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super().__init__()
@@ -274,20 +274,6 @@ class C3(nn.Module):
     def forward(self, x):
         return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
 
-class C3_1(nn.Module):
-    # offload all cbl tensor
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
-        super().__init__()
-        c_ = int(c2 * e)  # hidden channels
-        self.cv1 = Conv_1(c1, c_, 1, 1)
-        self.cv2 = Conv_1(c1, c_, 1, 1)
-        self.cv3 = Conv_1(2 * c_, c2, 1)  # act=FReLU(c2)
-        self.m = nn.Sequential(*(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
-        # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
-
-    def forward(self, x):
-        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
-
 class C3_2(nn.Module):
     # Module[2] offload cv1's second & cv3's third
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
@@ -324,55 +310,52 @@ class C3_4(nn.Module):
     def forward(self, x):
         return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
 
-class C3_4part(nn.Module):
-    # Module[4] complex
+class C3_6(nn.Module):
+    # Module[6] offload all tensor besides the first of cv1
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = Conv_010(c1, c_, 1, 1)
+        self.cv2 = Conv_in110(c1, c_, 1, 1)
+        self.cv3 = Conv_in110(2 * c_, c2, 1)  # act=FReLU(c2)
+        self.m = nn.Sequential(*(Bottleneck_in111110(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
+        # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
+
+    def forward(self, x):
+        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+
+class C3_9(nn.Module):
+    # offload input & all cbl tensor except last
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
         self.cv2 = Conv(c1, c_, 1, 1)
         self.cv3 = Conv(2 * c_, c2, 1)  # act=FReLU(c2)
-        self.m = nn.Sequential(
-            *(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(5)),
-            Bottleneck_01(c_, c_, shortcut, g, e=1.0),
-            *(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(3))
-            )
-                
-        # self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
-
+        self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
         # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
 
     def forward(self, x):
-        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+        with torch.autograd.graph.save_on_cpu():
+            res = self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+        return res
 
-
-class C3_6(nn.Module):
-    # Module[6] offload all tensor besides the first of cv1
-    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
-        super().__init__()
-        c_ = int(c2 * e)  # hidden channels
-        self.cv1 = Conv_011(c1, c_, 1, 1)
-        self.cv2 = Conv_1(c1, c_, 1, 1)
-        self.cv3 = Conv_1(2 * c_, c2, 1)  # act=FReLU(c2)
-        self.m = nn.Sequential(*(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
-        # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
-
-    def forward(self, x):
-        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
 
 class C3_17(nn.Module):
     # Module[17] offload cv1/cv2
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
-        self.cv1 = Conv_1(c1, c_, 1, 1)
-        self.cv2 = Conv_1(c1, c_, 1, 1)
+        self.cv1 = Conv(c1, c_, 1, 1)
+        self.cv2 = Conv(c1, c_, 1, 1)
         self.cv3 = Conv(2 * c_, c2, 1)  # act=FReLU(c2)
-        self.m = nn.Sequential(*(Bottleneck_1(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
+        self.m = nn.Sequential(*(Bottleneck(c_, c_, shortcut, g, e=1.0) for _ in range(n)))
         # self.m = nn.Sequential(*[CrossConv(c_, c_, 3, 1, g, 1.0, shortcut) for _ in range(n)])
 
     def forward(self, x):
-        return self.cv3(torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1))
+        with torch.autograd.graph.save_on_cpu():
+            res = torch.cat((self.m(self.cv1(x)), self.cv2(x)), dim=1)
+        return self.cv3(res)
 
 class C3_re(nn.Module):
     # CSP Bottleneck with 3 convolutions
@@ -414,15 +397,23 @@ class SPP_8(nn.Module):
     def __init__(self, c1, c2, k=(5, 9, 13)):
         super().__init__()
         c_ = c1 // 2  # hidden channels
-        self.cv1 = Conv_1(c1, c_, 1, 1)
-        self.cv2 = Conv_1(c_ * (len(k) + 1), c2, 1, 1)
-        self.m = nn.ModuleList([nn.MaxPool2d(kernel_size=x, stride=1, padding=x // 2) for x in k])
+        self.cv1 = Conv_010(c1, c_, 1, 1)
+        self.cv2 = Conv_110(c_ * (len(k) + 1), c2, 1, 1)
+        # self.m = nn.ModuleList([nn.MaxPool2d(kernel_size=x, stride=1, padding=x // 2) for x in k])
+        self.m0 = nn.MaxPool2d(kernel_size=5, stride=1, padding=5 // 2)
+        self.m1 = nn.MaxPool2d(kernel_size=9, stride=1, padding=9 // 2)
+        self.m2 = nn.MaxPool2d(kernel_size=13, stride=1, padding=13 // 2)
 
     def forward(self, x):
         x = self.cv1(x)
+        with torch.autograd.graph.save_on_cpu():
+            res0 = self.m0(x)
+            res1 = self.m1(x)
+            res2 = self.m2(x)
+
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # suppress torch 1.9.0 max_pool2d() warning
-            return self.cv2(torch.cat([x] + [m(x) for m in self.m], 1))
+            return self.cv2(torch.cat([x] + [res0] + [res1] + [res2], 1))
 
 class SPPF(nn.Module):
     # Spatial Pyramid Pooling - Fast (SPPF) layer for YOLOv5 by Glenn Jocher

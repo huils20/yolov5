@@ -311,14 +311,14 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
                 pass
 
         n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
-        if m in [Conv, Conv_1, GhostConv, Bottleneck, GhostBottleneck, SPP, SPP_8, SPPF, DWConv, MixConv2d, Focus, CrossConv,
-                 BottleneckCSP, C3, C3_1, C3_2, C3_4, C3_4part, C3_6, C3_17, C3TR, C3SPP, C3Ghost]:
+        if m in [Conv, Conv_in110, Conv_110, GhostConv, Bottleneck, GhostBottleneck, SPP, SPP_8, SPPF, DWConv, MixConv2d, Focus, CrossConv,
+                 BottleneckCSP, C3, C3_2, C3_4, C3_6, C3_9, C3_17, C3TR, C3SPP, C3Ghost]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
             args = [c1, c2, *args[1:]]
-            if m in [BottleneckCSP, C3, C3_1, C3_2, C3_4, C3_4part, C3_6, C3_17, C3TR, C3Ghost]:    # C3_4part不加进去有影响？？
+            if m in [BottleneckCSP, C3, C3_2, C3_4, C3_6, C3_9, C3_17, C3TR, C3Ghost]:    # C3_4part不加进去有影响？？
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m is nn.BatchNorm2d:
