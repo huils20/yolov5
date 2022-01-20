@@ -137,7 +137,7 @@ class Detect_offload(nn.Module):
         return grid, anchor_grid
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolov5l4.0off.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+    def __init__(self, cfg='yolov5l4.0.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
         super().__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
