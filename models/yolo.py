@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 # ROOT = ROOT.relative_to(Path.cwd())  # relative
 
-# from models.common import *
+from models.common import *
 from models.mycommon3 import *
 from models.experimental import *
 from utils.autoanchor import check_anchor_order
